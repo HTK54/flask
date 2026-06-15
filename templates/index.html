@@ -1,11 +1,465 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>주말에 뭐 보지? 🎬</title>
+  <style>
+    /* ===== 전체 기본 스타일 (넷플릭스 다크 테마) ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #141414;
+      color: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ===== 헤더 ===== */
+    header {
+      background: linear-gradient(180deg, #000000cc 0%, transparent 100%);
+      padding: 30px 40px 20px;
+      text-align: center;
+      border-bottom: 2px solid #e50914;
+    }
+
+    header h1 {
+      font-size: 2.8rem;
+      color: #e50914;
+      letter-spacing: 2px;
+      text-shadow: 0 0 20px #e5091488;
+    }
+
+    header p {
+      color: #aaaaaa;
+      margin-top: 8px;
+      font-size: 1rem;
+    }
+
+    /* ===== 버튼 영역 ===== */
+    .btn-area {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 30px 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 14px 32px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    /* 평점 정렬 버튼 */
+    .btn-sort {
+      background-color: #e50914;
+      color: white;
+    }
+
+    .btn-sort:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 18px #e5091488;
+    }
+
+    /* 랜덤 추천 버튼 */
+    .btn-random {
+      background-color: #ffffff;
+      color: #141414;
+    }
+
+    .btn-random:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 18px #ffffff88;
+    }
+
+    /* ===== 섹션 제목 ===== */
+    .section-title {
+      text-align: center;
+      font-size: 1.3rem;
+      color: #cccccc;
+      margin-bottom: 20px;
+      display: none; /* 처음엔 숨김, JS로 표시 */
+    }
+
+    /* ===== 카드 그리드 레이아웃 ===== */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 24px;
+      padding: 0 40px 60px;
+    }
+
+    /* ===== 개별 카드 ===== */
+    .card {
+      background-color: #1f1f1f;
+      border-radius: 10px;
+      overflow: hidden;
+      transition: transform 0.25s, box-shadow 0.25s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 12px 30px rgba(229, 9, 20, 0.4);
+    }
+
+    .card img {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+    }
+
+    .card-body {
+      padding: 14px;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-genre {
+      font-size: 0.78rem;
+      color: #aaaaaa;
+      margin-bottom: 6px;
+    }
+
+    .card-rating {
+      font-size: 0.9rem;
+      color: #f5c518; /* 황금색 별점 */
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .card-summary {
+      font-size: 0.78rem;
+      color: #cccccc;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-link {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 0.78rem;
+      color: #e50914;
+      text-decoration: none;
+    }
+
+    .card-link:hover {
+      text-decoration: underline;
+    }
+
+    /* ===== 로딩 스피너 ===== */
+    .spinner {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      font-size: 2rem;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== 랜덤 추천 모달 ===== */
+    .modal-overlay {
+      display: none; /* 평소엔 숨김 */
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-box {
+      background: #1f1f1f;
+      border: 2px solid #e50914;
+      border-radius: 14px;
+      max-width: 420px;
+      width: 90%;
+      overflow: hidden;
+      animation: popUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+    }
+
+    @keyframes popUp {
+      from { transform: scale(0.5); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-box img {
+      width: 100%;
+      height: 320px;
+      object-fit: cover;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-badge {
+      background: #e50914;
+      color: white;
+      font-size: 0.75rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .modal-genre {
+      color: #aaaaaa;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
+
+    .modal-rating {
+      color: #f5c518;
+      font-weight: bold;
+      margin-bottom: 12px;
+    }
+
+    .modal-summary {
+      color: #cccccc;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-btn-watch {
+      flex: 1;
+      padding: 12px;
+      background: #e50914;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .modal-btn-close {
+      flex: 1;
+      padding: 12px;
+      background: #333333;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    /* ===== 반응형 ===== */
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.8rem; }
+      .card-grid { padding: 0 16px 40px; }
+    }
+  </style>
 </head>
 <body>
-    <h1>안녕하세요</h1>
+
+  <!-- ===== 헤더 ===== -->
+  <header>
+    <h1>🎬 주말에 뭐 보지?</h1>
+    <p>넷플릭스 인기 작품 추천 서비스</p>
+  </header>
+
+  <!-- ===== 버튼 영역 ===== -->
+  <div class="btn-area">
+    <button class="btn btn-sort" onclick="loadTopRated()">⭐ 평점 높은 순 정렬</button>
+    <button class="btn btn-random" onclick="loadRandom()">🎲 뭐 볼지 랜덤 추천!</button>
+  </div>
+
+  <!-- ===== 섹션 제목 ===== -->
+  <p class="section-title" id="section-title"></p>
+
+  <!-- ===== 로딩 스피너 ===== -->
+  <div class="spinner" id="spinner">⏳</div>
+
+  <!-- ===== 카드 목록 ===== -->
+  <div class="card-grid" id="card-grid"></div>
+
+  <!-- ===== 랜덤 추천 모달 ===== -->
+  <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-box" id="modal-box">
+      <img id="modal-img" src="" alt="포스터"/>
+      <div class="modal-body">
+        <span class="modal-badge">🎲 오늘의 추천작</span>
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-genre" id="modal-genre"></div>
+        <div class="modal-rating" id="modal-rating"></div>
+        <div class="modal-summary" id="modal-summary"></div>
+        <div class="modal-actions">
+          <button class="modal-btn-watch" id="modal-watch-btn">▶ 넷플릭스에서 보기</button>
+          <button class="modal-btn-close" onclick="closeModalDirect()">✕ 닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // 카드 1개를 HTML 문자열로 만들어 반환하는 함수
+    // ============================================================
+    function createCardHTML(movie) {
+      return `
+        <div class="card">
+          <img src="${movie.poster}" alt="${movie.title} 포스터"
+               onerror="this.src='https://via.placeholder.com/400x300/1f1f1f/e50914?text=No+Image'"/>
+          <div class="card-body">
+            <div class="card-title">${movie.title}</div>
+            <div class="card-genre">${movie.genre}</div>
+            <div class="card-rating">⭐ ${movie.rating} / 10</div>
+            <div class="card-summary">${movie.summary}</div>
+            ${movie.link ? `<a class="card-link" href="${movie.link}" target="_blank">▶ 넷플릭스에서 보기</a>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // 버튼 1: 평점 높은 순 정렬
+    // Flask의 /movies/top 엔드포인트에서 데이터를 받아 카드로 출력
+    // ============================================================
+    async function loadTopRated() {
+      showSpinner(true);
+      clearCards();
+
+      try {
+        // 백엔드에 데이터 요청
+        const response = await fetch("/movies/top");
+        const movies = await response.json();
+
+        // 섹션 제목 표시
+        document.getElementById("section-title").style.display = "block";
+        document.getElementById("section-title").textContent =
+          `⭐ 평점 높은 순 정렬 (총 ${movies.length}개)`;
+
+        // 카드 HTML 생성 및 삽입
+        const grid = document.getElementById("card-grid");
+        movies.forEach(movie => {
+          grid.innerHTML += createCardHTML(movie);
+        });
+
+      } catch (err) {
+        alert("데이터를 불러오는데 실패했습니다. 서버를 확인해 주세요.");
+        console.error(err);
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    // ============================================================
+    // 버튼 2: 랜덤 추천
+    // Flask의 /movies/random 엔드포인트에서 1개를 받아 모달로 출력
+    // ============================================================
+    async function loadRandom() {
+      showSpinner(true);
+
+      try {
+        // 백엔드에 랜덤 데이터 1개 요청
+        const response = await fetch("/movies/random");
+        const movie = await response.json();
+
+        // 모달에 데이터 채우기
+        document.getElementById("modal-img").src = movie.poster;
+        document.getElementById("modal-title").textContent = movie.title;
+        document.getElementById("modal-genre").textContent = movie.genre;
+        document.getElementById("modal-rating").textContent = `⭐ ${movie.rating} / 10`;
+        document.getElementById("modal-summary").textContent = movie.summary;
+
+        // 넷플릭스 링크 설정
+        const watchBtn = document.getElementById("modal-watch-btn");
+        if (movie.link) {
+          watchBtn.style.display = "block";
+          watchBtn.onclick = () => window.open(movie.link, "_blank");
+        } else {
+          watchBtn.style.display = "none";
+        }
+
+        // 모달 열기
+        document.getElementById("modal-overlay").classList.add("active");
+
+      } catch (err) {
+        alert("데이터를 불러오는데 실패했습니다. 서버를 확인해 주세요.");
+        console.error(err);
+      } finally {
+        showSpinner(false);
+      }
+    }
+
+    // ============================================================
+    // 모달 닫기 (오버레이 클릭 시)
+    // ============================================================
+    function closeModal(event) {
+      // 모달 박스 바깥(오버레이)을 클릭했을 때만 닫힘
+      if (event.target === document.getElementById("modal-overlay")) {
+        document.getElementById("modal-overlay").classList.remove("active");
+      }
+    }
+
+    // ============================================================
+    // 모달 닫기 (닫기 버튼 클릭 시)
+    // ============================================================
+    function closeModalDirect() {
+      document.getElementById("modal-overlay").classList.remove("active");
+    }
+
+    // ============================================================
+    // 유틸: 스피너 표시/숨김
+    // ============================================================
+    function showSpinner(show) {
+      document.getElementById("spinner").style.display = show ? "block" : "none";
+    }
+
+    // ============================================================
+    // 유틸: 카드 목록 초기화
+    // ============================================================
+    function clearCards() {
+      document.getElementById("card-grid").innerHTML = "";
+    }
+  </script>
+
 </body>
 </html>
